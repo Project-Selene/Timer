@@ -1,0 +1,27 @@
+{
+  "name": "timer",
+  "version": "0.0.1",
+  "description": "A timer for speedrunners",
+  "main": "dist/main.js",
+  "type": "module",
+  "scripts": {
+    "start": "project-selene-watch",
+    "build": "project-selene-build",
+    "watch": "project-selene-watch",
+    "copyassets": "project-selene-copy-assets",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "2767mr",
+  "license": "MIT",
+  "dependencies": {
+    "@project-selene/api": "*",
+    "@types/node": "^25.0.3"
+  },
+  "devDependencies": {
+    "typescript": "~5.5.3"
+  },
+  "project-selene": {
+    "id": "fec099ed-1d06-4176-ab2d-ff24a0f65e74",
+    "name": "Timer"
+  }
+}
