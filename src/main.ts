@@ -40,7 +40,7 @@ class FocusTracker extends Injectable(System) {
 
 class StartTracker extends Injectable(ShowOptionDialogStep) {
     start(...args: unknown[]) {
-        if (this.message.langID === 471) {
+        if (this.message.langID === 291) {
             connection.sendSplit();
         }
         super.start(...args);
