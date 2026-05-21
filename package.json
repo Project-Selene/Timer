@@ -1,6 +1,6 @@
 {
   "name": "timer",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "A timer for speedrunners",
   "main": "dist/main.js",
   "type": "module",
@@ -8,6 +8,7 @@
     "start": "project-selene-watch",
     "build": "project-selene-build",
     "watch": "project-selene-watch",
+    "publish": "project-selene-publish",
     "copyassets": "project-selene-copy-assets",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
