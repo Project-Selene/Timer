@@ -1,5 +1,5 @@
 import { Injectable, Mod, terra } from '@project-selene/api';
-import { COMBAT_PARAMS_EVENT, CombatParams, g_scene, Game, SceneManager, ShowCenterMessageStep, ShowOptionDialogStep, System, Vars } from '@project-selene/api/terra';
+import { COMBAT_PARAMS_EVENT, CombatParams, g_scene, Game, SceneManager, ShowCenterMessageStep, ShowOptionDialogStep, Vars } from '@project-selene/api/terra';
 import { Connection } from './connection';
 
 const connection = new Connection();
@@ -23,17 +23,6 @@ class Timer extends Injectable(Game) {
                 connection.sendIgt(time);
             }
         }
-    }
-}
-
-class FocusTracker extends Injectable(System) {
-    setWindowFocus(focusLost: boolean) {
-        if (focusLost && !this.focusLostIgnore) {
-            connection.sendPaused(true);
-        } else {
-            connection.sendPaused(g_scene.isInit() || g_scene.isLoading());
-        }
-        super.setWindowFocus(focusLost);
     }
 }
 
@@ -151,7 +140,6 @@ class PrintHealth extends Injectable(CombatParams) {
 
 export default function main(mod: Mod) {
     mod.inject(Timer);
-    mod.inject(FocusTracker);
     mod.inject(StartTracker);
     mod.inject(EndTracker);
 
