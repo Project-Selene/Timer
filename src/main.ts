@@ -1,5 +1,5 @@
 import { Injectable, Mod, terra } from '@project-selene/api';
-import { COMBAT_PARAMS_EVENT, CombatParams, g_scene, Game, SceneManager, ShowCenterMessageStep, ShowOptionDialogStep, Vars } from '@project-selene/api/terra';
+import { COMBAT_PARAMS_EVENT, CombatParams, g_options, g_scene, Game, OptionsManager, SceneManager, ShowCenterMessageStep, ShowOptionDialogStep, Vars } from '@project-selene/api/terra';
 import { Connection } from './connection';
 
 const connection = new Connection();
@@ -47,11 +47,8 @@ class EndTracker extends Injectable(ShowCenterMessageStep) {
 }
 
 let container: HTMLDivElement;
+let printEnabled = false;
 function setupPrintEvents(mod: Mod) {
-    mod.inject(PrintVariables);
-    mod.inject(PrintTeleports);
-    mod.inject(PrintHealth);
-
     container = document.createElement('div');
     container.id = 'timer-debug';
     container.style.position = 'absolute';
@@ -59,8 +56,32 @@ function setupPrintEvents(mod: Mod) {
     container.style.left = '30px';
     container.style.zIndex = '9999';
     document.body.appendChild(container);
+
+    mod.inject(class extends Injectable(OptionsManager) {
+        init() {
+            super.init();
+            const enableDisablePrintEvents = {
+                injected: false,
+                onOptionEvent() {
+                    const option = g_options.get('mod-timer-show-event');
+                    printEnabled = !!option;
+                    if (!this.injected && option) {
+                        mod.inject(PrintVariables);
+                        mod.inject(PrintTeleports);
+                        mod.inject(PrintHealth);
+                        this.injected = true;
+                    }
+                }
+            }
+            this.addObserver(enableDisablePrintEvents);
+            enableDisablePrintEvents.onOptionEvent();
+        }
+    })
 }
 function addMessage(message: string) {
+    if (!printEnabled) {
+        return;
+    }
     const msg = document.createElement('div');
     msg.textContent = message;
     container.appendChild(msg);
@@ -143,7 +164,7 @@ export default function main(mod: Mod) {
     mod.inject(StartTracker);
     mod.inject(EndTracker);
 
-    // setupPrintEvents(mod);
+    setupPrintEvents(mod);
 
     connection.connect(
         () => console.log('[timer] Connected to LiveSplit'),
@@ -152,6 +173,10 @@ export default function main(mod: Mod) {
 }
 
 export function unload() {
-    document.body.removeChild(container);
+    try {
+        document.body.removeChild(container);
+    } catch {
+        // ignore
+    }
     connection.disconnect();
 }

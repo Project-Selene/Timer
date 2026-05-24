@@ -1,0 +1,5 @@
+[
+
+{"op":"add","path":"/mod-timer-show-event","value":{"debug":false,"description":{"en_US":"Shows an overlay for all in-game events.","langID":1337001},"header":{"en_US":"Timer","langID":1337003},"hidden":false,"label":{"en_US":"Show Event Overlays","langID":1337002},"local":false,"type":{"default":false,"type":"CHECKBOX"},"category":"GENERAL"}}
+
+]
