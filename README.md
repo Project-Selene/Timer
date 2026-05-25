@@ -4,7 +4,7 @@ This document explains how to create a `splits.json` file for the Timer mod in p
 
 ## Where the file goes
 
-Place the finished file at `mod-data/timer/splits.json` inside your mod folder so the timer can load it automatically.
+Place the finished file at `terra/mod-data/timer/splits.json` inside your Alabaster Dawn folder so the timer can load it automatically.
 
 
 ## Where to get the events
