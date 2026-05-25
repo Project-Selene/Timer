@@ -1,8 +1,11 @@
 import { Injectable, Mod, terra } from '@project-selene/api';
-import { COMBAT_PARAMS_EVENT, CombatParams, g_options, g_scene, Game, OptionsManager, SceneManager, ShowCenterMessageStep, ShowOptionDialogStep, Vars } from '@project-selene/api/terra';
+import { g_options, g_scene, Game, ShowOptionDialogStep } from '@project-selene/api/terra';
 import { Connection } from './connection';
+import { EventManager } from './event-manager';
+import { Hooks } from './hooks';
 
 const connection = new Connection();
+const eventManager = new EventManager();
 
 let lastPaused = true;
 let time = 0;
@@ -29,6 +32,7 @@ class Timer extends Injectable(Game) {
 class StartTracker extends Injectable(ShowOptionDialogStep) {
     getNext(...args: unknown[]) {
         if (this.message.langID === 15) {
+            eventManager.reset();
             connection.sendStart();
             console.log('[timer] Start');
             time = 0;
@@ -37,49 +41,36 @@ class StartTracker extends Injectable(ShowOptionDialogStep) {
     }
 }
 
-class EndTracker extends Injectable(ShowCenterMessageStep) {
-    start(...args: unknown[]) {
-        if (this.message.langID === 291) {
-            connection.sendSplit();
-        }
-        super.start(...args);
-    }
-}
-
 let container: HTMLDivElement;
-let printEnabled = false;
-function setupPrintEvents(mod: Mod) {
+function setupPrintEvents() {
     container = document.createElement('div');
     container.id = 'timer-debug';
     container.style.position = 'absolute';
     container.style.top = '30px';
     container.style.left = '30px';
     container.style.zIndex = '9999';
+    container.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    container.style.userSelect = 'all';
     document.body.appendChild(container);
 
-    mod.inject(class extends Injectable(OptionsManager) {
-        init() {
-            super.init();
-            const enableDisablePrintEvents = {
-                injected: false,
-                onOptionEvent() {
-                    const option = g_options.get('mod-timer-show-event');
-                    printEnabled = !!option;
-                    if (!this.injected && option) {
-                        mod.inject(PrintVariables);
-                        mod.inject(PrintTeleports);
-                        mod.inject(PrintHealth);
-                        this.injected = true;
-                    }
-                }
-            }
-            this.addObserver(enableDisablePrintEvents);
-            enableDisablePrintEvents.onOptionEvent();
-        }
-    })
+    Hooks.hookTeleport((mapName) => {
+        addMessage(`teleport ${mapName}`);
+    });
+    Hooks.hookVariableChange((path, value) => {
+        addMessage(`variable change ${path} = ${value}`);
+    });
+    Hooks.hookEnemyHP((name, hp) => {
+        addMessage(`hp ${name} = ${hp}`);
+    });
+    Hooks.hookStoryEnd((plotKey) => {
+        addMessage(`story end ${plotKey}`);
+    });
+    Hooks.hookCenterMessage((langID) => {
+        addMessage(`center message ${langID}`);
+    });
 }
 function addMessage(message: string) {
-    if (!printEnabled) {
+    if (!g_options.get('mod-timer-show-event')) {
         return;
     }
     const msg = document.createElement('div');
@@ -91,80 +82,18 @@ function addMessage(message: string) {
     }, 10000);
 }
 
-class PrintVariables extends Injectable(Vars) {
-    set(path: string, value: unknown) {
-        super.set(path, value);
-        addMessage(`var ${path} = ${value}`);
-    }
-    delete(path: string) {
-        super.delete(path);
-        addMessage(`var ${path} = `);
-    }
-    add(path: string, value: unknown) {
-        super.add(path, value);
-        addMessage(`var ${path} = ${this.get(path)}`);
-    }
-    sub(path: string, value: unknown) {
-        super.sub(path, value);
-        addMessage(`var ${path} = ${this.get(path)}`);
-    }
-    mul(path: string, value: unknown) {
-        super.mul(path, value);
-        addMessage(`var ${path} = ${this.get(path)}`);
-    }
-    div(path: string, value: unknown) {
-        super.div(path, value);
-        addMessage(`var ${path} = ${this.get(path)}`);
-    }
-    mod(path: string, value: unknown) {
-        super.mod(path, value);
-        addMessage(`var ${path} = ${this.get(path)}`);
-    }
-    and(path: string, value: unknown) {
-        super.and(path, value);
-        addMessage(`var ${path} = ${this.get(path)}`);
-    }
-    or(path: string, value: unknown) {
-        super.or(path, value);
-        addMessage(`var ${path} = ${this.get(path)}`);
-    }
-    xor(path: string, value: unknown) {
-        super.xor(path, value);
-        addMessage(`var ${path} = ${this.get(path)}`);
-    }
-    append(path: string, value: unknown) {
-        super.append(path, value);
-        addMessage(`var ${path} = ${this.get(path)}`);
-    }
-    prepend(path: string, value: unknown) {
-        super.prepend(path, value);
-        addMessage(`var ${path} = ${this.get(path)}`);
-    }
-}
-class PrintTeleports extends Injectable(SceneManager) {
-    teleport(map: string, ...args: unknown[]) {
-        addMessage(`teleport ${map}`);
-        return super.teleport(map, ...args);
-    }
-}
-
-class PrintHealth extends Injectable(CombatParams) {
-    fireEvent(event: number, ...params: unknown[]) {
-        if (event === COMBAT_PARAMS_EVENT.HP_CHANGED
-            || event === COMBAT_PARAMS_EVENT.STATS_RESET || event === COMBAT_PARAMS_EVENT.HP_RESET) {
-            addMessage(`HP changed: ${this.combatant?.ent?.core?.name} = ${this.currentHP}`);
-        }
-
-        return super.fireEvent(event, ...params);
-    }
-}
 
 export default function main(mod: Mod) {
     mod.inject(Timer);
     mod.inject(StartTracker);
-    mod.inject(EndTracker);
 
-    setupPrintEvents(mod);
+    Hooks.init(mod);
+
+    setupPrintEvents();
+
+    eventManager.init(() => {
+        connection.sendSplit();
+    });
 
     connection.connect(
         () => console.log('[timer] Connected to LiveSplit'),
