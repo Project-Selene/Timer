@@ -21,10 +21,11 @@ class Timer extends Injectable(Game) {
                 connection.sendPaused(paused);
             }
 
-            if (!paused) {
-                time += terra.g_system.tick.real;
-                connection.sendIgt(time);
-            }
+            //TODO: Figure out how to properly keep track of time while the game is minimized
+            // if (!paused) {
+            //     time += terra.g_system.tick.real;
+            //     connection.sendIgt(time);
+            // }
         }
     }
 }
@@ -34,6 +35,9 @@ class StartTracker extends Injectable(ShowOptionDialogStep) {
         if (this.message.langID === 15) {
             eventManager.reset();
             connection.sendStart();
+            const paused = g_scene.isInit() || g_scene.isLoading();
+            connection.sendPaused(paused);
+            lastPaused = paused;
             console.log('[timer] Start');
             time = 0;
         }
