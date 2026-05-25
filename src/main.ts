@@ -1,5 +1,5 @@
 import { Injectable, Mod, terra } from '@project-selene/api';
-import { g_options, g_scene, Game, ShowOptionDialogStep } from '@project-selene/api/terra';
+import { g_options, g_scene, Game, ShowOptionDialogStep, System } from '@project-selene/api/terra';
 import { Connection } from './connection';
 import { EventManager } from './event-manager';
 import { Hooks } from './hooks';
@@ -9,6 +9,8 @@ const eventManager = new EventManager();
 
 let lastPaused = true;
 let time = 0;
+let focusLostAt = performance.now();
+let focused = true;
 
 class Timer extends Injectable(Game) {
     update() {
@@ -21,12 +23,26 @@ class Timer extends Injectable(Game) {
                 connection.sendPaused(paused);
             }
 
-            //TODO: Figure out how to properly keep track of time while the game is minimized
-            // if (!paused) {
-            //     time += terra.g_system.tick.real;
-            //     connection.sendIgt(time);
-            // }
+            if (!paused && focused) {
+                time += terra.g_system.tick.real;
+                connection.sendIgt(time);
+            }
         }
+    }
+}
+
+class FocusTracker extends Injectable(System) {
+    setWindowFocus(focusLost: boolean) {
+        if (focusLost && !this.focusLostIgnore) {
+            focused = false;
+            focusLostAt = performance.now();
+            connection.sendPaused(true);
+        } else {
+            focused = true;
+            time += (performance.now() - focusLostAt) / 1000;
+            connection.sendPaused(g_scene.isInit() || g_scene.isLoading());
+        }
+        super.setWindowFocus(focusLost);
     }
 }
 
@@ -90,6 +106,7 @@ function addMessage(message: string) {
 export default function main(mod: Mod) {
     mod.inject(Timer);
     mod.inject(StartTracker);
+    mod.inject(FocusTracker);
 
     Hooks.init(mod);
 
